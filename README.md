@@ -80,3 +80,5 @@ Modifying [Criteria Type] and [Position in Excel] **will crash** the system
 
 - highlight.xlsx		-	Showing financial information for filtered companies
 
+Please refer to the **Sample Output** folder for outcome samples
+
