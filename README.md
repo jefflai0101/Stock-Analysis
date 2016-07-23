@@ -82,3 +82,4 @@ Modifying [Criteria Type] and [Position in Excel] **will crash** the system
 
 Please refer to the **Sample Output** folder for outcome samples
 
+Note: The program was written as a learning project for Python, and thus there are huge rooms to improve on the codes itself.
