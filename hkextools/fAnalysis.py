@@ -15,7 +15,6 @@ folderPath = os.path.dirname(os.path.abspath(__file__))
 thisDay = ''
 thisMonth = ''
 thisYear = ''
-dbPath = ''
 #===============================================================================================================================================
 #Imports from HKEx Tools
 from hkextools import nettools
@@ -105,7 +104,11 @@ def threeAverage(code):
 	req = urllib.request.Request(link, data.encode('Big5'), headers = headers)
 	rsp = nettools.tryConnect(link)
 	content = rsp.read()
+	#content = nettools.tryConnect(link)
 	coSoup = BeautifulSoup(content, 'html.parser')
+
+	#with open(os.path.join(folderPath, 'sample.txt'), "w+", encoding='utf-8') as htmlCode:
+	#	htmlCode.write(coSoup.prettify())
 
 	for info in coSoup.find_all('tr'):
 		for dInfo in info.find_all('td'):
@@ -117,6 +120,8 @@ def threeAverage(code):
 					if (matchKey == None):
 						priceList[0].append(recordCount)
 						priceList[1].append(float(dInfo.get_text()))
+						#priceSum += float(dInfo.get_text())
+						#print (dInfo.get_text())
 						recordCount += 1
 					readCount = 0
 				else:
@@ -134,7 +139,8 @@ def threeAverage(code):
 #===============================================================================================================================================
 #Scrape for last closing price if suspended				Need to improve the suspension check
 def priceForSus(code):
-	
+	#<td bgcolor="#CCCCCC" align="center" width="53">
+	#<font face="Verdana, Arial, Helvetica, sans-serif" size="2">
 	i = 0
 	link = 'http://www.hkex.com.hk/eng/invest/company/quote_page_e.asp?WidCoID=' + code + '&WidCoAbbName=&Month=1&langcode=e'
 	content = nettools.tryConnect(link)
@@ -381,6 +387,7 @@ def calSumFigures(figA, figB, figC):
 #Returns divided ratios in percentage or decimals, depending on the operating mode
 def calDivRatios(figA, figB, mode):
 	figADone = False
+	temp = 0
 	if (figA == '-' or figA == '' or figA == 0):
 		tempA = 0
 		figADone = True
@@ -396,7 +403,7 @@ def calDivRatios(figA, figB, mode):
 	else:
 		if (figB == 0):
 			return 0
-	temp = tempA / tempB
+	if (not tempB == 0): temp = tempA / tempB
 	if (mode == 1):
 		return (str(round(temp ,4) * 100) + '%')
 	elif (mode == 2):
@@ -408,7 +415,7 @@ def eachCompany(coCode, noOfShares, bankList):
 	cNS(coCode)
 	#Calculate Ratios for the company, based on whether it's a bank or not
 	if coCode not in bankList:
-		if (coCode != '02277'):
+		if (coCode != '02277' and coCode != '08346'):
 			cNOut(coCode, noOfShares)
 	else:
 		cBNOut(coCode)
@@ -538,8 +545,7 @@ def ratiosToExcel(listToWrite, ratioLabels, stockList, shortNameList, mode):
 def consolExcel(listToWrite):
 
 	#outputPath = folderPath
-	#outputPath = 'C:\\Users\\Jeff\\Dropbox\\Station\\HKEx'
-	outputPath = dbPath
+	outputPath = 'C:\\Users\\Jeff\\Dropbox\\Station\\HKEx'
 
 	workbook = xlsxwriter.Workbook(os.path.join(outputPath, 'consolRatios.xlsx'))
 	bold = workbook.add_format({'bold': True})
@@ -579,8 +585,7 @@ def consolExcel(listToWrite):
 	workbook.close()
 #===============================================================================================================================================
 def copyFiles():
-	#outputPath = 'C:\\Users\\Jeff\\Dropbox\\Station\\HKEx'
-	outputPath = dbPath
+	outputPath = 'C:\\Users\\Jeff\\Dropbox\\Station\\HKEx'
 
 	#[copy coList.csv and IndustryIndex.csv to dropbox]
 	os.system ('copy ' + 'coList.csv ' + os.path.join(outputPath, 'coList.csv'))
@@ -617,6 +622,12 @@ def main(mode):
 		issuedShares = [item[9].split(' ')[0] for item in coInfo]
 		classList = [item[7].split(' - ')[-1][0:item[7].split(' - ')[-1].find('    ')] if (item[7].split(' - ')[-1].find('    ') != -1) else item[7].split(' - ')[-1] for item in coInfo if item[7] != 'Industry Classification']
 
+	toPop = stockList.index('08346')
+	stockList.pop(toPop)
+	shortNameList.pop(toPop)
+	issuedShares.pop(toPop)
+	classList.pop(toPop)
+
 	#Industry classification
 	classifyList(classList, stockList)
 
@@ -634,7 +645,7 @@ def main(mode):
 		csvreader = csv.reader(csvfile, delimiter=',', quotechar='\"')
 		for row in csvreader:
 			listToWrite = row
-			
+
 			print ('Working on : ' + listToWrite[0])
 			if (listToWrite[0] == 'Banks (HSIC*)'):
 				listToWrite.pop(listToWrite.index('00222'))

@@ -7,7 +7,6 @@ import xlsxwriter
 #===============================================================================================================================================
 #Obtain current folder path
 folderPath = ''
-dbPath = ''
 ratioLabels = ['Original Currency', 'Original Unit', 'Year End', 'Stock Code', 'Name', 'Gross Profit Margin','EBITDA Margin','Net Profit Margin','EBITDA Coverage','Current Ratio','Quick Ratio','NAV','Debt to Assets','Debt to Equity','Average Total Assets','Average Total Equity','Assets Turnover','Leverage Ratio','ROE','Z-Score', 'PE', '3 Months Average', 'Latest Price']
 
 #===============================================================================================================================================
@@ -22,10 +21,9 @@ def readCSV(pathToRead):
 
 
 #===============================================================================================================================================
-#Generate a csv file based on the txt file on dropbox
 def genCrit():
-	inPath = os.path.join(dbPath, 'Criteria.txt')
-	outPath = os.path.join(folderPath, 'Settings', 'Criteria.csv')
+	inPath = 'C:\\Users\\Jeff\\Dropbox\\Station\\HKEx\\Criteria.txt'
+	outPath = os.path.join(folderPath, 'Criteria.csv')
 
 	with open(outPath, 'w+', newline='', encoding='utf-8') as csvfile:
 		csvwriter = csv.writer(csvfile)
@@ -39,7 +37,6 @@ def genCrit():
 				i += 1
 
 #===============================================================================================================================================
-#Filtering for companies that matches the criteria specified
 def startFilter(indC, coCriteria):
 	coInfo = readCSV(os.path.join(folderPath, 'Industries', indC + '.csv'))
 
@@ -57,10 +54,20 @@ def startFilter(indC, coCriteria):
 				elif (coCriteria[j-5][2] == 'L') and (float(coInfo[j][i]) < float(coCriteria[j-5][1])): matchFlags[j-5] = True
 				elif (coCriteria[j-5][2] == 'N'): matchFlags[j-5] = True
 
+
+			#============Debug============
+			#print (coCriteria[j-5][2], '\t', matchFlags[j-5], '\t', coCriteria[j-5][1], ' vs ', coInfo[j][i])
+		#print ('-' * 30)
+
 		if (False in matchFlags):
 			pass
 		else:
 			listToHighlight.append(coInfo[3][i])
+
+	#============Debug============
+	#print ('-' * 50)
+	#print (len(listToHighlight), ' results in ', indC)
+	#[print(item, coInfo[4][coInfo[3].index(item)]) for item in listToHighlight]
 
 	for item in listToHighlight:
 		for i in range(0, 23):
@@ -69,13 +76,12 @@ def startFilter(indC, coCriteria):
 	return listToReturn
 
 #===============================================================================================================================================
-#Execution for the highlight process
 def main():
 
 	genCrit()
 
 	if (os.name == 'nt'):
-		outputPath = dbPath
+		outputPath = 'C:\\Users\\Jeff\\Dropbox\\Station\\HKEx'
 	else:
 		outputPath = folderPath
 
@@ -85,7 +91,7 @@ def main():
 	industClasses = [item[0][0:-8] for item in readCSV(os.path.join(folderPath, 'IndustryIndex.csv'))]
 
 	#Reading all filters
-	coCriteria = readCSV(os.path.join(folderPath, 'Settings', 'Criteria.csv'))
+	coCriteria = readCSV(os.path.join(folderPath, 'Criteria.csv'))
 
 	workbook = xlsxwriter.Workbook(os.path.join(outputPath, 'highlight.xlsx'))
 	worksheet = workbook.add_worksheet()
