@@ -627,6 +627,11 @@ def main(mode):
 	shortNameList.pop(toPop)
 	issuedShares.pop(toPop)
 	classList.pop(toPop)
+	toPop = stockList.index('02277')
+	stockList.pop(toPop)
+	shortNameList.pop(toPop)
+	issuedShares.pop(toPop)
+	classList.pop(toPop)
 
 	#Industry classification
 	classifyList(classList, stockList)
