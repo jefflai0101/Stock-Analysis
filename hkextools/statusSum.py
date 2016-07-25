@@ -12,7 +12,7 @@ folderPath = ''
 def keywordsRead():
 	global keywords
 	global keywordCount
-	with open(os.path.join(folderPath, 'keywords.csv'), "r") as csvfile:
+	with open(os.path.join(folderPath, 'Settings', 'keywords.csv'), "r") as csvfile:
 		csvreader = csv.reader(csvfile, delimiter=',', quotechar='\"')
 		for row in csvreader:
 			if (row[1] == 'Y'): 
