@@ -607,7 +607,7 @@ def main(mode):
 	bRatioLabels = ['Currency', 'Unit', 'Year End', 'Stock Code', 'Name', 'NAV', 'Average TA', 'Average Equity', 'EBITDA Margin', 'Asset Turnover', 'Leverage Ratio', 'ROE', 'ROA', 'Loan/Deposit', 'Efficieny Ratio', 'Bad Debts Provision', 'Net Interest Spread', 'CAR', '3 Months Average', 'Latest Price']
 
 	#Checking for listed banks and separates from other companies
-	with open(os.path.join(folderPath, 'Banks'), 'r', encoding='utf-8') as bankLog:
+	with open(os.path.join(folderPath, 'Settings', 'Banks'), 'r', encoding='utf-8') as bankLog:
 		rows = bankLog.readlines()
 		for row in rows:
 			bankList.append(row[0:5])
