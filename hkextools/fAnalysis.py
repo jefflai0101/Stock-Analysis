@@ -11,10 +11,10 @@ import threading
 #===============================================================================================================================================
 #Obtain current folder path
 folderPath = os.path.dirname(os.path.abspath(__file__))
+#folderPath = ''
 thisDay = ''
 thisMonth = ''
 thisYear = ''
-dbPath = ''
 #===============================================================================================================================================
 #Imports from HKEx Tools
 from hkextools import nettools
@@ -25,17 +25,17 @@ from hkextools import nettools
 #Function in scraping company financial info on Aastocks
 def cNS(code):
 
-	if (os.path.isdir(os.path.join(folderPath, 'Output', 'Companies', code)) == False):
-		os.system ('mkdir ' + os.path.join(folderPath, 'Output', 'Companies', code))
-	if (os.path.isdir(os.path.join(folderPath, 'Output', 'Companies', code, 'Financial')) == False):
-		os.system ('mkdir ' + os.path.join('Output', 'Companies', code, 'Financial'))
+	if (os.path.isdir(os.path.join(folderPath, 'Companies', code)) == False):
+		os.system ('mkdir ' + os.path.join(folderPath, 'Companies', code))
+	if (os.path.isdir(os.path.join(folderPath, 'Companies', code, 'Financial')) == False):
+		os.system ('mkdir ' + os.path.join('Companies', code, 'Financial'))
 
 	cNSCount = 1
 	link = ''
 	writeFlag = True
 	buff = []
 
-	with open(os.path.join(folderPath, 'Output', 'Companies', code, 'Financial', 'Figures.csv'), "w+", newline='', encoding='utf-8') as csvfile:
+	with open(os.path.join(folderPath,'Companies', code, 'Financial', 'Figures.csv'), "w+", newline='', encoding='utf-8') as csvfile:
 		csvwriter = csv.writer(csvfile)
 
 		while (cNSCount < 4):
@@ -104,7 +104,11 @@ def threeAverage(code):
 	req = urllib.request.Request(link, data.encode('Big5'), headers = headers)
 	rsp = nettools.tryConnect(link)
 	content = rsp.read()
+	#content = nettools.tryConnect(link)
 	coSoup = BeautifulSoup(content, 'html.parser')
+
+	#with open(os.path.join(folderPath, 'sample.txt'), "w+", encoding='utf-8') as htmlCode:
+	#	htmlCode.write(coSoup.prettify())
 
 	for info in coSoup.find_all('tr'):
 		for dInfo in info.find_all('td'):
@@ -116,6 +120,8 @@ def threeAverage(code):
 					if (matchKey == None):
 						priceList[0].append(recordCount)
 						priceList[1].append(float(dInfo.get_text()))
+						#priceSum += float(dInfo.get_text())
+						#print (dInfo.get_text())
 						recordCount += 1
 					readCount = 0
 				else:
@@ -157,7 +163,7 @@ def priceForSus(code):
 def cNOut(coCode, issuedShares):
 
 	figureList = []
-	with open(os.path.join(folderPath, 'Output', 'Companies', coCode, 'Financial', 'Figures.csv'), 'r', encoding='utf-8') as csvfile:
+	with open(os.path.join(folderPath, 'Companies', coCode, 'Financial', 'Figures.csv'), 'r', encoding='utf-8') as csvfile:
 		csvreader = csv.reader(csvfile, delimiter=',', quotechar='\"')
 		figureList = list(csvreader)
 		figUnit = 1
@@ -166,7 +172,7 @@ def cNOut(coCode, issuedShares):
 	maxRange = min(3, len(figureList[0]) - 2)
 	startLine = int(len(figureList[0]) - 1)
 
-	with open(os.path.join(folderPath, 'Output', 'Companies', coCode, 'Financial', 'Ratios.csv'), 'w+', newline='', encoding='utf-8') as csvfile:
+	with open(os.path.join(folderPath, 'Companies', coCode, 'Financial', 'Ratios.csv'), 'w+', newline='', encoding='utf-8') as csvfile:
 		csvwriter = csv.writer(csvfile)
 		for i in range(0, maxRange):
 			allRatios = []
@@ -282,7 +288,7 @@ def cBNOut(coCode):
 			pass
 
 	figureList = []
-	with open(os.path.join(folderPath, 'Output', 'Companies', coCode, 'Financial', 'Figures.csv'), 'r', encoding='utf-8') as csvfile:
+	with open(os.path.join(folderPath, 'Companies', coCode, 'Financial', 'Figures.csv'), 'r', encoding='utf-8') as csvfile:
 		csvreader = csv.reader(csvfile, delimiter=',', quotechar='\"')
 		figureList = list(csvreader)
 		figUnit = 1
@@ -291,7 +297,7 @@ def cBNOut(coCode):
 	maxRange = min(3, len(figureList[0]) - 2)
 	startLine = int(len(figureList[0]) - 1)
 
-	with open(os.path.join(folderPath, 'Output', 'Companies', coCode, 'Financial', 'Ratios.csv'), 'w+', newline='', encoding='utf-8') as csvfile:
+	with open(os.path.join(folderPath, 'Companies', coCode, 'Financial', 'Ratios.csv'), 'w+', newline='', encoding='utf-8') as csvfile:
 		csvwriter = csv.writer(csvfile)
 		for i in range(0, maxRange):
 			allRatios = []
@@ -423,7 +429,7 @@ def classifyList(classList, stockList):
 	stockList.pop(0)
 	#print (uniqueList)
 	listToWrite = []
-	with open(os.path.join(folderPath, 'Output', 'IndustryIndex.csv'), 'w+', newline='', encoding='utf-8') as csvfile:
+	with open(os.path.join(folderPath, 'IndustryIndex.csv'), 'w+', newline='', encoding='utf-8') as csvfile:
 		csvwriter = csv.writer(csvfile)
 		for i in range(0, len(uniqueList)):
 			listToWrite = [j for j, x in enumerate(classList) if x == uniqueList[i]]
@@ -436,13 +442,19 @@ def classifyList(classList, stockList):
 #===============================================================================================================================================
 #Extracts ratios and export as one industry
 def extractRatios(listToWrite, ratioLabels, stockList, shortNameList, mode):
-	outputPath = os.path.join(folderPath, 'Output', 'Industries')
+
+#	if (os.name == 'nt'):
+#		outputPath = 'C:\\Users\\Jeff\\Dropbox\\Station\\HKEx\\Industries'
+#	else:
+#		outputPath = os.path.join(folderPath, 'Industries', listToWrite[0][0:-8] + '.csv')
+
+	outputPath = os.path.join(folderPath, 'Industries')
 
 	itemList = [[5,6,7,12,13,16,18], [8,9,10,17,18,19,20,21,22],[11,14,15]] if (mode == 1) else [[8,9,11,12,13,14,16],[10,17,18,19], [5,6,7,15]]
 	indRatios = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]] if (mode == 1) else [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]
 	maxRange = 23 if (mode == 1) else 20
 	for i in range(1, len(listToWrite)):
-		with open(os.path.join(folderPath, 'Output', 'Companies', listToWrite[i], 'Financial', 'Ratios.csv'), 'r', encoding='utf-8') as csvfile:
+		with open(os.path.join(folderPath, 'Companies', listToWrite[i], 'Financial', 'Ratios.csv'), 'r', encoding='utf-8') as csvfile:
 			csvreader = csv.reader(csvfile, delimiter=',', quotechar='\"')
 			for row in csvreader:
 				#indRatios[0].append(row[0])
@@ -482,10 +494,10 @@ def extractRatios(listToWrite, ratioLabels, stockList, shortNameList, mode):
 #Extracts ratios and export as one industry, in excel format
 def ratiosToExcel(listToWrite, ratioLabels, stockList, shortNameList, mode):
 
-	if (os.path.isdir(os.path.join(folderPath, 'Output', 'ExcelRatios')) == False):
-		os.system ('mkdir ' + os.path.join(folderPath, 'Output', 'ExcelRatios'))
+	if (os.path.isdir(os.path.join(folderPath, 'ExcelRatios')) == False):
+		os.system ('mkdir ' + os.path.join(folderPath, 'ExcelRatios'))
 
-	outputPath = os.path.join(folderPath, 'Output', 'ExcelRatios')
+	outputPath = os.path.join(folderPath, 'ExcelRatios')
 
 	workbook = xlsxwriter.Workbook(os.path.join(outputPath, listToWrite[0][0:-8] + '.xlsx'))
 	worksheet = workbook.add_worksheet()
@@ -500,7 +512,7 @@ def ratiosToExcel(listToWrite, ratioLabels, stockList, shortNameList, mode):
 	itemList = [[5,6,7,12,13,16,18], [8,9,10,17,18,19,20,21,22],[11,14,15]] if (mode == 1) else [[8,9,11,12,13,14,16],[10,17,18,19], [5,6,7,15]]
 	maxRange = 23 if (mode == 1) else 20
 	for i in range(1, len(listToWrite)):
-		with open(os.path.join(folderPath, 'Output', 'Companies', listToWrite[i], 'Financial', 'Ratios.csv'), 'r', encoding='utf-8') as csvfile:
+		with open(os.path.join(folderPath, 'Companies', listToWrite[i], 'Financial', 'Ratios.csv'), 'r', encoding='utf-8') as csvfile:
 			csvreader = csv.reader(csvfile, delimiter=',', quotechar='\"')
 			for row in csvreader:
 				#worksheet.write(0, i, row[0])
@@ -533,7 +545,7 @@ def ratiosToExcel(listToWrite, ratioLabels, stockList, shortNameList, mode):
 def consolExcel(listToWrite):
 
 	#outputPath = folderPath
-	outputPath = os.path.join(folderPath, 'Output') if (dbPath == '') else dbPath
+	outputPath = 'C:\\Users\\Jeff\\Dropbox\\Station\\HKEx'
 
 	workbook = xlsxwriter.Workbook(os.path.join(outputPath, 'consolRatios.xlsx'))
 	bold = workbook.add_format({'bold': True})
@@ -546,7 +558,7 @@ def consolExcel(listToWrite):
 		#print (eachIndustry.rstrip(' (HSIC*)')[0:30])
 		worksheet = workbook.add_worksheet(eachIndustry.rstrip(' (HSIC*)')[0:30])
 
-		with open(os.path.join(folderPath, 'Output', 'Industries', eachIndustry[0:-8] + '.csv'), 'r', encoding='UTF-8') as csvfile:
+		with open(os.path.join(folderPath, 'Industries', eachIndustry[0:-8] + '.csv'), 'r', encoding='UTF-8') as csvfile:
 			csvreader = csv.reader(csvfile)
 			csvRatios = list(csvreader)
 		
@@ -573,11 +585,11 @@ def consolExcel(listToWrite):
 	workbook.close()
 #===============================================================================================================================================
 def copyFiles():
-	outputPath = os.path.join(folderPath, 'Output') if (dbPath == '') else dbPath
+	outputPath = 'C:\\Users\\Jeff\\Dropbox\\Station\\HKEx'
 
 	#[copy coList.csv and IndustryIndex.csv to dropbox]
-	os.system ('copy ' + os.path.join(folderPath, 'Output', 'coList.csv') + ' ' + os.path.join(outputPath, 'coList.csv'))
-	os.system ('copy ' + os.path.join(folderPath, 'Output', 'IndustryIndex.csv') + ' ' + os.path.join(outputPath, 'IndustryIndex.csv'))
+	os.system ('copy ' + 'coList.csv ' + os.path.join(outputPath, 'coList.csv'))
+	os.system ('copy ' + 'IndustryIndex.csv ' + os.path.join(outputPath, 'IndustryIndex.csv'))
 
 #===============================================================================================================================================
 #***********************************							Main Part									***********************************
@@ -594,23 +606,32 @@ def main(mode):
 	ratioLabels = ['Currency', 'Unit', 'Year End', 'Stock Code', 'Name', 'Gross Profit Margin','EBITDA Margin','Net Profit Margin','EBITDA Coverage','Current Ratio','Quick Ratio','NAV','Debt to Assets','Debt to Equity','Average Total Assets','Average Total Equity','Assets Turnover','Leverage Ratio','ROE','Z-Score', 'PE', '3 Months Average', 'Latest Price']
 	bRatioLabels = ['Currency', 'Unit', 'Year End', 'Stock Code', 'Name', 'NAV', 'Average TA', 'Average Equity', 'EBITDA Margin', 'Asset Turnover', 'Leverage Ratio', 'ROE', 'ROA', 'Loan/Deposit', 'Efficieny Ratio', 'Bad Debts Provision', 'Net Interest Spread', 'CAR', '3 Months Average', 'Latest Price']
 
-	excludeList = ['00222', '00642', '02277', '08346']
-
 	#Checking for listed banks and separates from other companies
-	with open(os.path.join(folderPath, 'Output', 'Banks'), 'r', encoding='utf-8') as bankLog:
+	with open(os.path.join(folderPath, 'Settings', 'Banks'), 'r', encoding='utf-8') as bankLog:
 		rows = bankLog.readlines()
 		for row in rows:
 			bankList.append(row[0:5])
 
 	#Reading all info from coList
-	with open(os.path.join(folderPath, 'Output', 'coList.csv'), 'r', encoding='UTF-8') as csvfile:
+	with open(os.path.join(folderPath, 'coList.csv'), 'r', encoding='UTF-8') as csvfile:
 		csvreader = csv.reader(csvfile)
 		coInfo = list(csvreader)
 		#Extracting info needed
-		stockList = [item[0] for item in coInfo if item[0] not in excludeList]
-		shortNameList = [item[1] for item in coInfo if item[0] not in excludeList]
-		issuedShares = [item[9].split(' ')[0] for item in coInfo if item[0] not in excludeList]
-		classList = [item[7].split(' - ')[-1][0:item[7].split(' - ')[-1].find('    ')] if (item[7].split(' - ')[-1].find('    ') != -1) else item[7].split(' - ')[-1] for item in coInfo if item[7] != 'Industry Classification' and item[0] not in excludeList]
+		stockList = [item[0] for item in coInfo]
+		shortNameList = [item[1] for item in coInfo]
+		issuedShares = [item[9].split(' ')[0] for item in coInfo]
+		classList = [item[7].split(' - ')[-1][0:item[7].split(' - ')[-1].find('    ')] if (item[7].split(' - ')[-1].find('    ') != -1) else item[7].split(' - ')[-1] for item in coInfo if item[7] != 'Industry Classification']
+
+	toPop = stockList.index('08346')
+	stockList.pop(toPop)
+	shortNameList.pop(toPop)
+	issuedShares.pop(toPop)
+	classList.pop(toPop)
+	toPop = stockList.index('02277')
+	stockList.pop(toPop)
+	shortNameList.pop(toPop)
+	issuedShares.pop(toPop)
+	classList.pop(toPop)
 
 	#Industry classification
 	classifyList(classList, stockList)
@@ -622,16 +643,17 @@ def main(mode):
 			scrapThread.start()
 
 
-	if (os.path.isdir(os.path.join(folderPath, 'Output', 'Industries')) == False):
-			os.system ('mkdir ' + os.path.join(folderPath, 'Output', 'Industries'))
+	if (os.path.isdir(os.path.join(folderPath, 'Industries')) == False):
+			os.system ('mkdir ' + os.path.join(folderPath, 'Industries'))
 	
-	with open(os.path.join(folderPath, 'Output', 'IndustryIndex.csv'), 'r', encoding='utf-8') as csvfile:
+	with open(os.path.join(folderPath, 'IndustryIndex.csv'), 'r', encoding='utf-8') as csvfile:
 		csvreader = csv.reader(csvfile, delimiter=',', quotechar='\"')
 		for row in csvreader:
 			listToWrite = row
 
 			print ('Working on : ' + listToWrite[0])
 			if (listToWrite[0] == 'Banks (HSIC*)'):
+				listToWrite.pop(listToWrite.index('00222'))
 				extractRatios(listToWrite, bRatioLabels, stockList, shortNameList, 2)
 				ratiosToExcel(listToWrite, bRatioLabels, stockList, shortNameList, 2)
 			else:
