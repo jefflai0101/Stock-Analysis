@@ -15,7 +15,6 @@ keywords = []
 keywordCount = 0
 #===============================================================================================================================================
 def tryConnect(link):
-	#content = None
 	networkOK = False
 	while networkOK == False:
 		networkOK = True
@@ -23,26 +22,24 @@ def tryConnect(link):
 			content = urllib.request.urlopen(link, timeout=5)
 		except urllib.error.URLError:
 			networkOK = False
-			#content.close()
 		except socket.timeout:
 			networkOK = False
-			#content.close()
 	return content
 
 #===============================================================================================================================================
-def checkFirstA(coCode, soup):
-	#Checking for listed banks and separates from other companies
+#Check if need to update announcement list
+def checkFirstA(coCode, coSoup):
 	if os.path.isfile(os.path.join(folderPath, 'Companies', coCode, 'index.txt')) == False:
 		return False
 	else:
 		try:
 			with open(os.path.join(folderPath, 'Companies', coCode, 'index.txt'), 'r', encoding='utf-8') as IndexFile:
 				rows = IndexFile.readlines()
-				if ((rows[1][len('http://www.hkexnews.hk'):].strip()) == (soup.find_all('a')[1].get('href')).strip()):
+				if ((rows[1][len('http://www.hkexnews.hk'):].strip()) == (coSoup.find_all('a')[1].get('href')).strip()):
 					#print ('No update needed!')
 					return True
 				else:
-					#print ('Updaing...')
+					#print ('Updating...')
 					return False
 		except UnicodeDecodeError:
 			return False
@@ -52,17 +49,17 @@ def checkFirstA(coCode, soup):
 def aSearch(coCode):
 
 	#Create folder for the company if it doesn't exist
-	if (os.path.isdir(os.path.join(folderPath, 'Companies')) == False):
-		os.system ('mkdir Companies')
-	if (os.path.isdir(os.path.join(folderPath, 'Companies', coCode)) == False):
-			os.system ('mkdir ' + os.path.join('Companies', coCode))
+	if (os.path.isdir(os.path.join(folderPath, 'Output', 'Companies')) == False):
+		os.system ('mkdir ' + str(os.path.join('Output', 'Companies')))
+	if (os.path.isdir(os.path.join(folderPath, 'Output', 'Companies', coCode)) == False):
+			os.system ('mkdir ' + os.path.join('Output', 'Companies', coCode))
 
 	#Obtain the viewState value for the current page
 	viewState = ''
 	content = urllib.request.urlopen('http://www.hkexnews.hk/listedco/listconews/advancedsearch/search_active_main.aspx')
-	soup = BeautifulSoup(content, 'html.parser')
+	coSoup = BeautifulSoup(content, 'html.parser')
 	#Obtains the viewstate key of the current page
-	for info in soup.find_all('input', {"id": "__VIEWSTATE"}):
+	for info in coSoup.find_all('input', {"id": "__VIEWSTATE"}):
 		viewState = info.get('value')
 
 	#Setting for the post
@@ -135,7 +132,7 @@ def cnW(values, headers, url, coCode, mode):
 	#content = content.decode('Big5')
 
 	#Initiate variables
-	soup = BeautifulSoup(content, 'html.parser')
+	coSoup = BeautifulSoup(content, 'html.parser')
 	count = 0
 	temp = ''
 	charToRe = ['\r', '\n', '\t']
@@ -147,12 +144,12 @@ def cnW(values, headers, url, coCode, mode):
 	if (mode == 2): fileState = 'a'
 
 	if (mode == 1): 
-		if (checkFirstA(coCode, soup) == True): return '', True
+		if (checkFirstA(coCode, coSoup) == True): return '', True
 
 	#Opens text file for output for the current company
-	with open(os.path.join(folderPath, 'Companies', coCode, 'index.txt'), fileState, encoding='utf-8') as indexFile:
+	with open(os.path.join(folderPath, 'Output', 'Companies', coCode, 'index.txt'), fileState, encoding='utf-8') as indexFile:
 
-		for info in soup.find_all('a'):
+		for info in coSoup.find_all('a'):
 			if count >= 1:
 				temp = info.get_text()
 				if not (temp[0:8] == '...More'):
@@ -173,19 +170,12 @@ def cnW(values, headers, url, coCode, mode):
 	noMore = False
 
 	#Obtains the viewstate key of the current page
-	for info in soup.find_all('input', {"id": "__VIEWSTATE"}):
+	for info in coSoup.find_all('input', {"id": "__VIEWSTATE"}):
 		viewState = info.get('value')
 
 	#Stop parsing if no 'Next' button was found on page
-	if soup.find_all('input', {"id": "ctl00_btnNext"}) == []:
+	if coSoup.find_all('input', {"id": "ctl00_btnNext"}) == []:
 		noMore = True
-	
-	#Check if announcement date is older than 5 years from today, ends if true
-#	a = datetime.datetime.strptime(str(thisDay + '/' + thisMonth + '/' + str(int(thisYear) - 5)), '%d/%m/%Y')
-#	for info in soup.find_all('span'):
-#		if (str(info.get('id'))[-8:] == 'DateTime'):
-#			b = datetime.datetime.strptime((str(info.get_text()[0:10])), "%d/%m/%Y")
-#			if (a > b): noMore = True
 	
 	return viewState, noMore
 #===============================================================================================================================================
@@ -193,16 +183,16 @@ def cnW(values, headers, url, coCode, mode):
 def pdfDown(coCode, pdfLink):
 
 	#Check if folder exists, create otherwise
-	if (os.path.isdir(os.path.join(folderPath, 'Companies', coCode, 'PDF')) == False):
-		os.system ('mkdir ' + os.path.join('Companies', coCode, 'PDF'))	
+	if (os.path.isdir(os.path.join(folderPath, 'Output', 'Companies', coCode, 'PDF')) == False):
+		os.system ('mkdir ' + os.path.join('Output','Companies', coCode, 'PDF'))	
 
 	#Obtain the file name for the download target and check whether the document is 'pdf' file
 	fileName = pdfLink.split('/')[-1].split('.')
 
 	if (fileName[1] == 'pdf'):
-		if (os.path.isfile(os.path.join(folderPath, 'Companies', coCode, 'PDF', fileName[0]) + '.pdf') == False):
+		if (os.path.isfile(os.path.join(folderPath, 'Output', 'Companies', coCode, 'PDF', fileName[0]) + '.pdf') == False):
 
-			dlFile = open(os.path.join(folderPath, 'Companies', coCode, 'PDF', fileName[0]) + '.pdf', 'wb+')
+			dlFile = open(os.path.join(folderPath, 'Output', 'Companies', coCode, 'PDF', fileName[0]) + '.pdf', 'wb+')
 
 			response = tryConnect(pdfLink)
 			data = response.read()

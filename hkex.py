@@ -44,42 +44,35 @@ shellCommand = ''
 shellCommand = 'cls' if os.name == 'nt' else 'clear'
 os.system(shellCommand)
 
-letsSkip = False
-#letsSkip = True
+#Check if CSV file exists
+if (os.path.isfile(os.path.join(folderPath, 'Output', 'coList.csv')) == True):
 
-if letsSkip == False:
-	#Check if CSV file exists
-	if (os.path.isfile(os.path.join(folderPath,'coList.csv')) == True):
+	#Check if folder 'Archive' exists. Shell cmd to archive the current version of CSV file into Archive folder
+	if (os.path.isdir(os.path.join(folderPath, 'Archive')) == False): os.system ('mkdir Archive')
+	archivePath = str(os.path.join(folderPath, 'Archive', str(datetime.date.today())) + '.csv')
+	shellCommand = 'move ' if os.name == 'nt' else 'mv '
+	os.system(shellCommand + os.path.join(folderPath, 'Output', 'coList.csv') + ' ' + archivePath)
 
-		#Check if folder 'Archive' exists. Shell cmd to archive the current version of CSV file into Archive folder
-		if (os.path.isdir(os.path.join(folderPath, 'Archive')) == False): os.system ('mkdir Archive')
-		archivePath = str(os.path.join(folderPath, 'Archive', str(datetime.date.today())) + '.csv')
-		shellCommand = 'move ' if os.name == 'nt' else 'mv '
-		os.system(shellCommand + os.path.join(folderPath, 'coList.csv') + ' ' + archivePath)
+	#Merges the updated company info and the archived CSV to a new CSV file
+	utiltools.outToCSV(1, archivePath)
+else:
+	#Creates and collect info from scratch if no CSV file was found
+	utiltools.outToCSV(0, '')
 
-		#Open the archived CSV ready to compare
-		coRecord = utiltools.readCoList(archivePath)
+#Start to search annoucements for each company on the list
+coRecord = utiltools.readCoList(os.path.join(folderPath, 'Output', 'coList.csv'))
+for i in range (1, len(coRecord)):
+	aST = threading.Thread(target=nettools.aSearch(coRecord[i][0]))
+	aST.start()
 
-		#Merges the updated company info and the archived CSV to a new CSV file
-		utiltools.outToCSV(1, coRecord, archivePath)
-	else:
-		#Creates and collect info from scratch if no CSV file was found
-		utiltools.outToCSV(0, '', '')
+#Checks all announcements for brief status
+statusSum.statusTag()
+statusSum.statusSummary (coRecord)
 
-	#Start to search annoucements for each company on the list
-	coRecord = utiltools.readCoList(os.path.join(folderPath, 'coList.csv'))
-	for i in range (0, len(coRecord[0])):
-		aST = threading.Thread(target=nettools.aSearch(coRecord[0][i]))
-		aST.start()
+#Obtain financials and calculate ratios
+fAnalysis.main(0)
 
-	#Checks all announcements for brief status
-	statusSum.statusTag()
-	statusSum.statusSummary (coRecord[0], coRecord[2])
-
-	#Obtain financials and calculate ratios
-	fAnalysis.main(0)
-
-	#Generate a list of stocks with criteria matched
-	highlight.main()
+#Generate a list of stocks with criteria matched
+highlight.main()
 
 #===============================================================================================================================================

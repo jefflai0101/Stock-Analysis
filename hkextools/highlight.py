@@ -8,7 +8,7 @@ import xlsxwriter
 #Obtain current folder path
 folderPath = ''
 ratioLabels = ['Original Currency', 'Original Unit', 'Year End', 'Stock Code', 'Name', 'Gross Profit Margin','EBITDA Margin','Net Profit Margin','EBITDA Coverage','Current Ratio','Quick Ratio','NAV','Debt to Assets','Debt to Equity','Average Total Assets','Average Total Equity','Assets Turnover','Leverage Ratio','ROE','Z-Score', 'PE', '3 Months Average', 'Latest Price']
-
+dbPath = ''
 #===============================================================================================================================================
 #***********************************							Main Part									***********************************
 #===============================================================================================================================================
@@ -19,11 +19,11 @@ def readCSV(pathToRead):
 		readInfo = list(csvreader)
 		return readInfo
 
-
 #===============================================================================================================================================
 def genCrit():
-	inPath = 'C:\\Users\\Jeff\\Dropbox\\Station\\HKEx\\Criteria.txt'
-	outPath = os.path.join(folderPath, 'Criteria.csv')
+	#inPath = 'C:\\Users\\Jeff\\Dropbox\\Station\\HKEx\\Criteria.txt'
+	inPath = os.path.join(folderPath, 'Settings', 'Criteria.txt') if (dbPath == '') else os.path.join(dbPath, 'Criteria.txt')
+	outPath = os.path.join(folderPath, 'Settings', 'Criteria.csv')
 
 	with open(outPath, 'w+', newline='', encoding='utf-8') as csvfile:
 		csvwriter = csv.writer(csvfile)
@@ -38,7 +38,7 @@ def genCrit():
 
 #===============================================================================================================================================
 def startFilter(indC, coCriteria):
-	coInfo = readCSV(os.path.join(folderPath, 'Industries', indC + '.csv'))
+	coInfo = readCSV(os.path.join(folderPath, 'Output', 'Industries', indC + '.csv'))
 
 	listToHighlight = []
 	listToReturn = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]
@@ -80,20 +80,17 @@ def main():
 
 	genCrit()
 
-	if (os.name == 'nt'):
-		outputPath = 'C:\\Users\\Jeff\\Dropbox\\Station\\HKEx'
-	else:
-		outputPath = folderPath
+	outputPath = os.path.join(folderPath, 'Settings', 'Criteria.csv') if (dbPath == '') else os.path.join(dbPath, 'Criteria.txt')
 
 	itemList = [[5,6,7,12,13,16,18], [8,9,10,17,18,19,20,21,22,11,14,15], [0,1,2,3,4]]
 
 	#Reading all industries
-	industClasses = [item[0][0:-8] for item in readCSV(os.path.join(folderPath, 'IndustryIndex.csv'))]
+	industClasses = [item[0][0:-8] for item in readCSV(os.path.join(folderPath, 'Output', 'IndustryIndex.csv'))]
 
 	#Reading all filters
-	coCriteria = readCSV(os.path.join(folderPath, 'Criteria.csv'))
+	coCriteria = readCSV(os.path.join(folderPath, 'Settings', 'Criteria.csv'))
 
-	workbook = xlsxwriter.Workbook(os.path.join(outputPath, 'highlight.xlsx'))
+	workbook = xlsxwriter.Workbook(os.path.join(folderPath, 'Output', 'highlight.xlsx'))
 	worksheet = workbook.add_worksheet()
 
 	bold = workbook.add_format({'bold': True})
