@@ -24,6 +24,8 @@ On the computer executing the code:
 
 	|->	hkex.py
 	|>>	Settings
+		|-> Criteria.csv
+		|-> Criteria.txt
 		|->	keyword.csv
 		|->	settings.txt
 	|>>	hkextools
@@ -34,18 +36,16 @@ On the computer executing the code:
 		|->	statusSum.py
 		|->	utiltools.py
 
-At the output folder:
-
-	|->	Criteria.txt
+Alternatively, you can move the **Criteria.txt** file to the output folder, if you decide to specify the output folder in the **settings.txt**
 
 ##How to use
 
 1)	Set the desired output path in **settings.txt**
 	
-	Output Folder='C:\Dropbox\HKEx'
+	Output Folder=C:\Dropbox\HKEx
 
-Note that you don't need Dropbox to execute this code
-You could specify the output folder to another location, such as the same folder where you put **hkex.py** at
+Note that you will need to ensure the specified location path exists
+By default, if no path was specified, an folder **Output** will be created in the same level as **hkex.py**
 
 2)	Modify 'keywords.csv' for company announcement analysis, in the following format
 
@@ -82,4 +82,4 @@ Modifying [Criteria Type] and [Position in Excel] **will crash** the system
 
 Please refer to the **Sample Output** folder for outcome samples
 
-Note: The program was written as a learning project for Python, and thus there are huge rooms to improve on the codes itself.
+This iss designed under the Python 3.5 environment, and have not tested under other versions of Python.
