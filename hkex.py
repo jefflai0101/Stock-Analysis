@@ -6,6 +6,7 @@ import os
 import sys
 import datetime
 import threading
+import ctypes
 import time
 
 #===============================================================================================================================================
@@ -29,50 +30,65 @@ fAnalysis.thisYear = nettools.thisYear = thisYear
 keywords, keywordCount = statusSum.keywordsRead()
 nettools.keywords = keywords
 nettools.keywordCount = keywordCount
-#Assign Dropbox folder path to other modules
-outReadings = []
-with open(os.path.join(folderPath, 'Settings' , 'settings.txt'), 'r') as settingsReader:
-	rows = settingsReader.readlines()
-	for row in rows:
-		outReadings.append(row.split('='))
-dbPath = outReadings[0][1]
-fAnalysis.dbPath = highlight.dbPath = dbPath
 #===============================================================================================================================================
 #***********************************								Main									***********************************
 #===============================================================================================================================================
+#coRecord = [[], [], [], [], [], [], [], [], [], [], [], [], [], []]
 shellCommand = ''
+
 shellCommand = 'cls' if os.name == 'nt' else 'clear'
+if os.name == 'nt': ctypes.windll.kernel32.SetConsoleTitleA(b'HKEx')
+os.system("mode con cols=30")
 os.system(shellCommand)
 
-#Check if CSV file exists
-if (os.path.isfile(os.path.join(folderPath, 'Output', 'coList.csv')) == True):
+print (folderPath)
 
-	#Check if folder 'Archive' exists. Shell cmd to archive the current version of CSV file into Archive folder
-	if (os.path.isdir(os.path.join(folderPath, 'Archive')) == False): os.system ('mkdir Archive')
-	archivePath = str(os.path.join(folderPath, 'Archive', str(datetime.date.today())) + '.csv')
-	shellCommand = 'move ' if os.name == 'nt' else 'mv '
-	os.system(shellCommand + os.path.join(folderPath, 'Output', 'coList.csv') + ' ' + archivePath)
+letsSkip = False
+#letsSkip = True
 
-	#Merges the updated company info and the archived CSV to a new CSV file
-	utiltools.outToCSV(1, archivePath)
+if letsSkip == False:
+	#Check if CSV file exists
+	if (os.path.isfile(os.path.join(folderPath,'coList.csv')) == True):
+
+		#Check if folder 'Archive' exists. Shell cmd to archive the current version of CSV file into Archive folder
+		if (os.path.isdir(os.path.join(folderPath, 'Archive')) == False): os.system ('mkdir Archive')
+		archivePath = str(os.path.join(folderPath, 'Archive', str(datetime.date.today())) + '.csv')
+		shellCommand = 'move ' if os.name == 'nt' else 'mv '
+		os.system(shellCommand + os.path.join(folderPath, 'coList.csv') + ' ' + archivePath)
+
+		#Open the archived CSV ready to compare
+		coRecord = utiltools.readCoList(archivePath)
+
+		#Merges the updated company info and the archived CSV to a new CSV file
+		utiltools.outToCSV(1, coRecord, archivePath)
+	else:
+		#Creates and collect info from scratch if no CSV file was found
+		utiltools.outToCSV(0, '', '')
+
+	#Start to search annoucements for each company on the list
+	coRecord = utiltools.readCoList(os.path.join(folderPath, 'coList.csv'))
+	for i in range (0, len(coRecord[0])):
+		aST = threading.Thread(target=nettools.aSearch(coRecord[0][i]))
+		aST.start()
+
+	#Periodically Annoucement Check goes here
+	#[										]
+
+	#Checks all announcements for brief status
+	statusSum.statusTag()
+	statusSum.statusSummary (coRecord[0], coRecord[2])
+
+	#Obtain updated financial figures goes here
+	#[										]
+
+	fAnalysis.main(0)
+
+	highlight.main()
+
 else:
-	#Creates and collect info from scratch if no CSV file was found
-	utiltools.outToCSV(0, '')
 
-#Start to search annoucements for each company on the list
-coRecord = utiltools.readCoList(os.path.join(folderPath, 'Output', 'coList.csv'))
-for i in range (1, len(coRecord)):
-	aST = threading.Thread(target=nettools.aSearch(coRecord[i][0]))
-	aST.start()
+	fAnalysis.main(0)
 
-#Checks all announcements for brief status
-statusSum.statusTag()
-statusSum.statusSummary (coRecord)
-
-#Obtain financials and calculate ratios
-fAnalysis.main(0)
-
-#Generate a list of stocks with criteria matched
-highlight.main()
+	highlight.main()
 
 #===============================================================================================================================================

@@ -1,1 +1,1 @@
-__all__ = ['statusSum', 'utiltools', 'nettools', 'fAnalysis', 'highlight']
+__all__ = ['statusSum', 'utiltools', 'nettools', 'fAnalysis', 'highlight', 'pdfParse']

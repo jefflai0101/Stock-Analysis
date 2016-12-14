@@ -33,114 +33,149 @@ def dirWalk(callPath, mode):
             return filenames
 #===============================================================================================================================================
 def readCoList(pathToRead):
-    coRecord = []
-    with open(pathToRead, 'r', encoding='utf-8') as csvfile:
+
+    coRecord = [[], [], [], [], [], [], [], [], [], [], [], [], [], []]
+    recordCount = 0
+
+    #Reads CSV file and return
+    with open(pathToRead, "r", encoding='utf-8') as csvfile:
         csvreader = csv.reader(csvfile, delimiter=',', quotechar='\"')
-        coRecord = list(csvreader)
+        for row in csvreader:
+            #Read all from CSV
+            if (recordCount > 0):
+                for i in range (0, 13):
+                    coRecord[i].append(row[i])
+            else:
+                recordCount = 1
+
     return coRecord
-
 #===============================================================================================================================================
-#Validate the stock code
-def validCode(code):
-    if (code > 8999): return False
-    if (code < 6030) and (code > 4000): return False
-    return True
-
-#===============================================================================================================================================
+#Function in scraping company info on HKEx, mode 0 is for English, mode 1 is for Chinese
 def extractCo(code, mode, csvoutput):
-    modeHead = 2
-    modeTail = 14
-    searchTag = ['coCode', 'ShortName', 'Company/Securities Name:', '公司/證券名稱:', 'Principal Office:', 'Place Incorporated:', 'Principal Activities:', 'Industry Classification:', 'Trading Currency:', 'Issued Shares:', 'Authorised Shares:', 'Par Value:', 'Board Lot:', 'Listing Date :']
+    temp = ''
+    printInfo = ''
+    tagCount = 1
+    opNo = 0
+    fieldNo = [-1, -1, 10, -1, 16, 18, 12, 22, 28, 32, 30, 34, 36, 26]
 
     if mode == 1:
         coContent = nettools.tryConnect('http://www.hkex.com.hk/eng/invest/company/profile_page_e.asp?WidCoID=' + code + '&WidCoAbbName=&Month=&langcode=e')
         coSoup = BeautifulSoup(coContent, 'html.parser')
     else:
         coContent = nettools.tryConnect('http://www.hkex.com.hk/chi/invest/company/profile_page_c.asp?WidCoID=' + code + '&WidCoAbbName=&Month=&langcode=c')
-        chiContent = coContent.read()#.decode('Big5-HKSCS')
+        #chiContent = coContent.read().decode('Big5-HKSCS', 'ignore').encode('cp950')
+        chiContent = coContent.read().decode('Big5-HKSCS', 'ignore')
         coSoup = BeautifulSoup(chiContent, 'html.parser')
-        modeTail = 4
 
-    for i in range (modeHead, modeTail):
-        tagFound = False
-        for info in coSoup.find_all('font'):
-            if (tagFound == True):
-                csvoutput[i] = info.get_text().strip(' \r\n\t').replace('\xa0',' ').strip()
-                if (i==9): csvoutput[i] = csvoutput[i].split(' ')[0]
-                break
-
-            if (re.search(searchTag[i], info.get_text().strip(), re.M | re.I) != None) and (csvoutput[i]==''): tagFound = True
-
-    if (re.search(csvoutput[2], 'pref', re.M | re.I) != None): csvoutput[4] == ''
-
-    return csvoutput
-
+    if (re.search('Company Website', str(coSoup), re.M | re.I) == None) and (mode == 1):
+        fieldNo[:] = [ fieldI - 1 for fieldI in fieldNo[:]]
+    if (re.search('Secondary Listing', str(coSoup), re.M | re.I) != None) and (mode == 1):
+        fieldNo[7:13] = [ fieldI + 2 for fieldI in fieldNo[7:13]]
+    
+    for info in coSoup.find_all('font'):
+        temp = info.get_text()
+        if (mode == 1 and tagCount in fieldNo):
+            charToRe = ['\r', '\n', '\t']
+            for nlChar in charToRe:
+                temp = temp.replace(nlChar, '')
+            #temp = [temp.replace(nlChar, '') for nlChar in charToRe]
+            csvoutput[fieldNo.index(tagCount)] = temp.strip()
+        elif (mode == 2) and (tagCount == fieldNo[2]):
+            csvoutput[3] = temp.strip()
+        tagCount += 1
+    return csvoutput, coSoup
+#===============================================================================================================================================
+#Validate the stock code
+def validCode(code):
+    codeIsValid = True
+    if (code > 8999):
+        codeIsValid = False
+    elif (code < 8000):
+        if (code > 4000):
+            codeIsValid = False
+    return codeIsValid
 #===============================================================================================================================================
 #Function to compare list with CSV and output to new CSV file
-def outToCSV(mode, archivePath):
+def outToCSV(mode, coRecord, archivePath):
     #Obtain html file, and parse with BeautifulSoup
     content = nettools.tryConnect('http://www.hkexnews.hk/listedco/listconews/advancedsearch/stocklist_active_main.htm')
-    coSoup = BeautifulSoup(content, 'html.parser')
+    #content = urllib.request.urlopen('http://www.hkexnews.hk/listedco/listconews/advancedsearch/stocklist_active_main.htm')
+    soup = BeautifulSoup(content, 'html.parser')
+
+    #Open files for output, create if not exist
+    csvfile = open(os.path.join(folderPath, 'coList.csv'), "w+", newline='', encoding='utf-8')
+    #csvfile = open(folderPath + "\\coList.csv", "w+", encoding='cp950')
+    csvwriter = csv.writer(csvfile)
+    excludeLog  = open (os.path.join(folderPath, 'excludeLog.txt'), "w+", encoding='utf-8')
 
     #Initiates variables
     startOutput = False
+    count = 0
+    coSoup = ''
+    #curList = ['HKD', 'USD', 'RMB']
+    #curFlag = False
     needParse = False
-    #Reading records from CSV
-    if (mode == 1): coRecord = readCoList(archivePath)
+    #csvoutput = ['','','','','','','','','','','','','','','']
 
-    #Read csv for writing
-    csvfile = open(os.path.join(folderPath, 'Output', 'coList.csv'), "w+", newline='', encoding='utf-8')
-    csvwriter = csv.writer(csvfile)
+    #Print csv head
     csvoutput = ['Code', 'Short', 'Name (Eng)', 'Name (Chi)', 'Principal Office', 'Place Incorporated', 'Principal Activities', 'Industry Classification', 'Currency', 'Issued Shares', 'Authorised Shares', 'Par Value', 'Board Lot', 'Listing Date', 'Remark']
     csvwriter.writerow(csvoutput)
     csvoutput = ['','','','','','','','','','','','','','','']
-    excludeLog = open (os.path.join(folderPath, 'Output', 'excludeLog.txt'), "w+", encoding='utf-8')
-    bankLog = open (os.path.join(folderPath, 'Output', 'Banks'), "w+", encoding='utf-8')
 
     #Loop for all info
-    for info in coSoup.find_all('td'):
-        #Exclude info not related to stocks
-        if (str(info.get_text())=='00001'): startOutput=True
-        if (startOutput):
-            #Checking if it's stock code info depending on contains number and empty list or not
-            if (info.get_text()[0].isdigit() and csvoutput[0]==''):
-                csvoutput[0] = str(info.get_text())
-            else:
-                #Checks if code valid
+    for info in soup.find_all('td'):
+        #Start to read only after reaching stock code 00001
+        if startOutput == True:
+            #Obtain text inside tag <td>
+            temp = info.get_text()
+            #When reading should be company name
+            if count == 1:
+                csvoutput[1] = temp
                 if (validCode(int(csvoutput[0]))):
-                    #Start checking from archive if current company exists in our record
-                    if (mode==1):
-                        print (str(info.get_text()))
+                    if (mode == 1):
                         try:
-                            thisCo = [x for x in coRecord if csvoutput[0] in x]
-                            if (thisCo[0][1] == str(info.get_text())):
-                                print ('Now on: ' + '\t' + csvoutput[0])
-                                if (re.search('Banks', thisCo[0][7], re.M | re.I) != None) and (csvoutput[0] != 222): bankLog.write(csvoutput[0] + '\n')
-                                csvwriter.writerow(thisCo[0])
+                            if (coRecord[1][coRecord[0].index(csvoutput[0])] == csvoutput[1]):
+                                iPos = int(coRecord[0].index(csvoutput[0]))
+                                for i in range (0, 13):
+                                    csvoutput[i] = coRecord[i][iPos]
+                                csvoutput[14] = ""
+                                csvwriter.writerow(csvoutput)
+                                needParse = False
                             else:
-                                #Treat as a new company if company new has changed
                                 needParse = True
-                        except:
-                            #Take a new parse search if the stock code is not found in our record
+                                csvoutput[14] = 'Changed'
+                        except ValueError:
                             needParse = True
-                    #Handling the parse request
-                    if (needParse or mode != 1):
-                        print ('Now on: ' + '\t' + csvoutput[0] + '\t[New]')
-                        csvoutput[1] = str(info.get_text())
-                        csvoutput[14] = 'New'
-                        csvoutput = extractCo(csvoutput[0], 2, extractCo(csvoutput[0], 1, csvoutput))
-                        if (re.search('Banks', csvoutput[7], re.M | re.I) != None) and (csvoutput[0] != 222): bankLog.write(csvoutput[0] + '\n')
-                        #Normally an equity will have field [Principal Office] and [Place Incorporated]
-                        if (csvoutput[4] != '' or csvoutput[5] != ''):
+                            csvoutput[14] = 'New'
+                    if (needParse == True or mode != 1):
+                        print ('Now on: ' + '\t' + csvoutput[0])
+                        csvoutput, coSoup = extractCo(csvoutput[0], 1, csvoutput)
+                        csvoutput = [s.replace('\xa0',' ') for s in csvoutput]
+                        #curFlag = False
+                        needParse = False
+                        if (re.search('industry', str(coSoup), re.M | re.I) != None) and (re.search('HSIC', csvoutput[7], re.M | re.I) != None) and (re.search('Preference Share', str(coSoup), re.M | re.I) == None):
+                        #for cur in curList:
+                            #if (csvoutput[8][0:3] == cur): curFlag = True
+                        #if (curFlag == True):
+                            csvoutput, coSoup = extractCo(csvoutput[0], 2, csvoutput)
                             csvwriter.writerow(csvoutput)
                         else:
-                            print (csvoutput[0] + ' is not equity')
+                            print (csvoutput[0] +' is not valid')
                             excludeLog.write(csvoutput[0] + '\n')
-                        needParse = False
                 csvoutput = ['','','','','','','','','','','','','','','']
+                count = 0
+            #When reading should be stock code
+            else:
+                csvoutput[0] = temp
+                count = 1
+        #First 2 readings not relevant
+        else:
+            count += 1
+            if count == 3:
+                startOutput = True
+                count = 0
 
+    #Output results
     csvfile.close()
     excludeLog.close()
-    bankLog.close()
-
 #===============================================================================================================================================
