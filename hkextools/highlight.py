@@ -35,8 +35,12 @@ def startFilter(thisSector, coFilters):
 		resultDict = {}
 
 		for coFilter in coFilters:
-			if (coFilter[2]=='M'): matchList.append(float(coInfo[coFilter[0]]) >= float(coFilter[1]))
-			if (coFilter[2]=='L'): matchList.append(float(coInfo[coFilter[0]]) <= float(coFilter[1]))
+			if (coFilter[0]=='Price vs 3-Months'):
+				if (coFilter[2]=='M'): matchList.append(float(coInfo[ratioLabels[-1]]) >= float(coInfo[ratioLabels[-2]]))
+				if (coFilter[2]=='L'): matchList.append(float(coInfo[ratioLabels[-1]]) <= float(coInfo[ratioLabels[-2]]))
+			else:
+				if (coFilter[2]=='M'): matchList.append(float(coInfo[coFilter[0]]) >= float(coFilter[1]))
+				if (coFilter[2]=='L'): matchList.append(float(coInfo[coFilter[0]]) <= float(coFilter[1]))
 
 		if sum(matchList) == sum(minMatch): matchCo.append(coInfo)
 

@@ -36,7 +36,6 @@ nettools.keywords = keywords
 #===============================================================================================================================================
 
 def main():
-	os.system('clear')
 	getData = 0
 
 	parser = argparse.ArgumentParser()

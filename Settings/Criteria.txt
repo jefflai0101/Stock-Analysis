@@ -1,19 +1,37 @@
 {
-	"Gross Profit Margin"	:	{"Mode" : "M", "Value" : "15"		},
-	"EBITDA Margin"			:	{"Mode" : "M", "Value" : "10"		},
-	"Net Profit Margin"		:	{"Mode" : "M", "Value" : "5"		},
-	"EBITDA Coverage"		:	{"Mode" : "N", "Value" : "0"		},
-	"Current Ratio"			:	{"Mode" : "M", "Value" : "1.5"		},
-	"Quick Ratio"			:	{"Mode" : "N", "Value" : "1"		},
-	"NAV"					:	{"Mode" : "M", "Value" : "20"		},
-	"Debt to Assets"		:	{"Mode" : "N", "Value" : "15"		},
-	"Debt to Equity"		:	{"Mode" : "N", "Value" : "15"		},
-	"Average Total Assets"	:	{"Mode" : "M", "Value" : "3000"		},
-	"Average Total Equity"	:	{"Mode" : "M", "Value" : "3000"		},
-	"Assets Turnover"		:	{"Mode" : "M", "Value" : "4"		},
-	"Leverage Ratio"		:	{"Mode" : "L", "Value" : "150"	 	},
-	"ROE"					:	{"Mode" : "M", "Value" : "3"		},
-	"Z-Score"				:	{"Mode" : "M", "Value" : "2"		},
-	"PE"					:	{"Mode" : "L", "Value" : "40"		},
-	"Price vs 3-Months"		:	{"Mode" : "N", "Value" : ""			}
+
+"Gross Profit Margin" : {"Mode" : "M", "Value" : "15" },
+
+"EBITDA Margin" : {"Mode" : "M", "Value" : "10" },
+
+"Net Profit Margin" : {"Mode" : "M", "Value" : "5" },
+
+"EBITDA Coverage" : {"Mode" : "N", "Value" : "0" },
+
+"Current Ratio" : {"Mode" : "M", "Value" : "1.5" },
+
+"Quick Ratio" : {"Mode" : "N", "Value" : "1" },
+
+"NAV" : {"Mode" : "M", "Value" : "20" },
+
+"Debt to Assets" : {"Mode" : "N", "Value" : "15" },
+
+"Debt to Equity" : {"Mode" : "N", "Value" : "15" },
+
+"Average Total Assets" : {"Mode" : "M", "Value" : "3000" },
+
+"Average Total Equity" : {"Mode" : "M", "Value" : "3000" },
+
+"Assets Turnover" : {"Mode" : "M", "Value" : "4" },
+
+"Leverage Ratio" : {"Mode" : "L", "Value" : "150"   },
+
+"ROE" : {"Mode" : "M", "Value" : "3" },
+
+"Z-Score" : {"Mode" : "M", "Value" : "2" },
+
+"PE" : {"Mode" : "L", "Value" : "40" },
+
+"Price vs 3-Months" : {"Mode" : "L", "Value" : "" }
+
 }

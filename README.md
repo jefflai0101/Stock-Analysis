@@ -41,10 +41,11 @@ Alternatively, you can move the **Criteria.txt** file to the output folder, if y
 
 1)	Set the desired output path in **settings.txt**
 	
-	Output Folder="C:/Dropbox/HKEx"
+	"Output Path": "D:\\Dropbox\\Station\\HKEx"
 
 Note that you will need to ensure the specified location path exists
 By default, if no path was specified, an folder **Output** will be created in the same level as **hkex.py**
+There are also settings for **currency** and the location of the **criteria** file.
 
 2)	Modify 'keywords.csv' for company announcement analysis, in the following format
 
@@ -53,10 +54,9 @@ By default, if no path was specified, an folder **Output** will be created in th
 
 3)	Modify the 'Criteria.txt' for company financial filter
 
-	[Criteria Type]			[Threshold]		[M/L/N]
-	Gross Profit Margin		30				M		
+	"Gross Profit Margin" : {"Mode" : "M", "Value" : "15" }
 
-For example, the above will mean a filter for companies with **more** than **30%** in **Gross Profit Margin**
+For example, the above will mean a filter for companies with **more** than **15%** in **Gross Profit Margin**
 
 	Notes:
 	M = More
