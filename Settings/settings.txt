@@ -1,1 +1,18 @@
-Output Folder=C:\Users\Jeff\Dropbox\Station\HKEx
+{
+
+"Output Path": "D:\\Dropbox\\Station\\HKEx", 
+
+"Criteria Path" : "Settings",
+
+"Currency" : {
+			"USD": "7.78",
+			"RMB": "1.1",
+			"HKD": "1",
+			"RM": "1.74",
+			"SGD": "5.43",
+			"JPY": "0.067",
+			"EUR": "8.23",
+			"CAD": "5.90",
+			"GBP": "9.47"
+			}
+}

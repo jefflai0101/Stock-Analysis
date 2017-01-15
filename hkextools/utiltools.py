@@ -2,12 +2,25 @@
 from bs4 import BeautifulSoup
 import os
 import re
-import csv
-import datetime
 import sys
+import csv
+import json
+import datetime
 from hkextools import nettools
 #===============================================================================================================================================
 folderPath = ''
+#===============================================================================================================================================
+def readSettings(pathToRead):
+    with open(pathToRead, 'r') as settingsFile:
+        jSet = json.loads(settingsFile.read())
+        return jSet
+#===============================================================================================================================================
+def readCSV(pathToRead):
+    #Reading all industries
+    with open(pathToRead, 'r', encoding='utf-8') as csvfile:
+        csvreader = csv.reader(csvfile)
+        readInfo = list(csvreader)
+        return readInfo
 #===============================================================================================================================================
 #Obtain Date values
 def obtDate ():
@@ -33,149 +46,95 @@ def dirWalk(callPath, mode):
             return filenames
 #===============================================================================================================================================
 def readCoList(pathToRead):
-
-    coRecord = [[], [], [], [], [], [], [], [], [], [], [], [], [], []]
-    recordCount = 0
-
-    #Reads CSV file and return
     with open(pathToRead, "r", encoding='utf-8') as csvfile:
         csvreader = csv.reader(csvfile, delimiter=',', quotechar='\"')
-        for row in csvreader:
-            #Read all from CSV
-            if (recordCount > 0):
-                for i in range (0, 13):
-                    coRecord[i].append(row[i])
-            else:
-                recordCount = 1
-
-    return coRecord
+        return list(csvreader)[1:]
 #===============================================================================================================================================
-#Function in scraping company info on HKEx, mode 0 is for English, mode 1 is for Chinese
-def extractCo(code, mode, csvoutput):
-    temp = ''
-    printInfo = ''
-    tagCount = 1
-    opNo = 0
-    fieldNo = [-1, -1, 10, -1, 16, 18, 12, 22, 28, 32, 30, 34, 36, 26]
+def extractCo(items, code, mode):
+    linkArg = ['eng','e','e'] if mode == 1 else ['chi','c','c']
+    coContent = nettools.tryConnect('http://www.hkex.com.hk/'+linkArg[0]+'/invest/company/profile_page_'+linkArg[1]+'.asp?WidCoID=' + code + '&WidCoAbbName=&Month=&langcode='+linkArg[2])
+    coSoup = BeautifulSoup(coContent.read().decode('Big5-HKSCS', 'ignore'), 'html.parser')
 
-    if mode == 1:
-        coContent = nettools.tryConnect('http://www.hkex.com.hk/eng/invest/company/profile_page_e.asp?WidCoID=' + code + '&WidCoAbbName=&Month=&langcode=e')
-        coSoup = BeautifulSoup(coContent, 'html.parser')
-    else:
-        coContent = nettools.tryConnect('http://www.hkex.com.hk/chi/invest/company/profile_page_c.asp?WidCoID=' + code + '&WidCoAbbName=&Month=&langcode=c')
-        #chiContent = coContent.read().decode('Big5-HKSCS', 'ignore').encode('cp950')
-        chiContent = coContent.read().decode('Big5-HKSCS', 'ignore')
-        coSoup = BeautifulSoup(chiContent, 'html.parser')
+    coLabels = [tdSoup.get_text().replace('\r', '').replace('\n', '').replace('\t', '').replace('\xa0','').lstrip().rstrip() for tdSoup in coSoup.find_all('td', {'colspan' : '0', 'valign' : 'top', 'align' : 'left', 'height' : '18', 'width' : '150'})]
+    coDetails = [tdSoup.get_text().replace('\r', '').replace('\n', '').replace('\t', '').replace('\xa0','').lstrip().rstrip() for tdSoup in coSoup.find_all('td', {'colspan' : '3', 'align' : 'left', 'height' : '18', 'width' : '300'})]
 
-    if (re.search('Company Website', str(coSoup), re.M | re.I) == None) and (mode == 1):
-        fieldNo[:] = [ fieldI - 1 for fieldI in fieldNo[:]]
-    if (re.search('Secondary Listing', str(coSoup), re.M | re.I) != None) and (mode == 1):
-        fieldNo[7:13] = [ fieldI + 2 for fieldI in fieldNo[7:13]]
-    
-    for info in coSoup.find_all('font'):
-        temp = info.get_text()
-        if (mode == 1 and tagCount in fieldNo):
-            charToRe = ['\r', '\n', '\t']
-            for nlChar in charToRe:
-                temp = temp.replace(nlChar, '')
-            #temp = [temp.replace(nlChar, '') for nlChar in charToRe]
-            csvoutput[fieldNo.index(tagCount)] = temp.strip()
-        elif (mode == 2) and (tagCount == fieldNo[2]):
-            csvoutput[3] = temp.strip()
-        tagCount += 1
-    return csvoutput, coSoup
+    coInfo = dict(zip(coLabels,coDetails))
+
+    for iKey, item in enumerate(items):
+        if (item in coInfo):  items[iKey] = coInfo[item]
+
+    return items
 #===============================================================================================================================================
 #Validate the stock code
 def validCode(code):
-    codeIsValid = True
-    if (code > 8999):
-        codeIsValid = False
-    elif (code < 8000):
-        if (code > 4000):
-            codeIsValid = False
-    return codeIsValid
+    return (code <= 4000) or ((code >= 8000) and (code < 9000))
 #===============================================================================================================================================
 #Function to compare list with CSV and output to new CSV file
-def outToCSV(mode, coRecord, archivePath):
-    #Obtain html file, and parse with BeautifulSoup
-    content = nettools.tryConnect('http://www.hkexnews.hk/listedco/listconews/advancedsearch/stocklist_active_main.htm')
-    #content = urllib.request.urlopen('http://www.hkexnews.hk/listedco/listconews/advancedsearch/stocklist_active_main.htm')
-    soup = BeautifulSoup(content, 'html.parser')
+def outToCSV(mode):
 
-    #Open files for output, create if not exist
-    csvfile = open(os.path.join(folderPath, 'coList.csv'), "w+", newline='', encoding='utf-8')
-    #csvfile = open(folderPath + "\\coList.csv", "w+", encoding='cp950')
-    csvwriter = csv.writer(csvfile)
-    excludeLog  = open (os.path.join(folderPath, 'excludeLog.txt'), "w+", encoding='utf-8')
+    onlineList = []
+    coRecords = []
+    temp = ''
+    #Obtain all full list of listed companies
+    listSoup = BeautifulSoup(nettools.tryConnect('http://www.hkexnews.hk/listedco/listconews/advancedsearch/stocklist_active_main.htm'), 'html.parser')
+    for codeInfo in listSoup.find_all('td'):
+        if (codeInfo['align'] == 'Center'):
+            temp = codeInfo.get_text() if (validCode(int(codeInfo.get_text()))) else ''
+        elif (codeInfo['align'] == 'left' and temp != ''):
+            onlineList.append([temp, codeInfo.get_text()])
 
-    #Initiates variables
-    startOutput = False
-    count = 0
-    coSoup = ''
-    #curList = ['HKD', 'USD', 'RMB']
-    #curFlag = False
-    needParse = False
-    #csvoutput = ['','','','','','','','','','','','','','','']
+    onlineList = dict(zip([coRecord[0] for coRecord in onlineList], [coRecord[1] for coRecord in onlineList]))
+    targetList = sorted(set(onlineList))
 
-    #Print csv head
-    csvoutput = ['Code', 'Short', 'Name (Eng)', 'Name (Chi)', 'Principal Office', 'Place Incorporated', 'Principal Activities', 'Industry Classification', 'Currency', 'Issued Shares', 'Authorised Shares', 'Par Value', 'Board Lot', 'Listing Date', 'Remark']
-    csvwriter.writerow(csvoutput)
-    csvoutput = ['','','','','','','','','','','','','','','']
+    if mode:
+        #Check if folder 'Archive' exists. Shell cmd to archive the current version of CSV file into Archive folder
+        if (os.path.isdir(os.path.join(folderPath, 'Archive')) == False): os.system ('mkdir Archive')
+        #archivePath = str(os.path.join(folderPath, 'Archive', str(datetime.date.today())) + '.csv')
+        #coListPath = str(os.path.join(folderPath, 'coList.csv'))
+        archivePath = str(os.path.join('Archive', str(datetime.date.today())) + '.csv')
+        coListPath = str('coList.csv')
+        #shellCommand = 'move ' if os.name == 'nt' else 'mv '
+        shellCommand = 'mv '
+        os.system(shellCommand + coListPath + ' ' + archivePath)
+        coRecords = readCoList(archivePath)
 
-    #Loop for all info
-    for info in soup.find_all('td'):
-        #Start to read only after reaching stock code 00001
-        if startOutput == True:
-            #Obtain text inside tag <td>
-            temp = info.get_text()
-            #When reading should be company name
-            if count == 1:
-                csvoutput[1] = temp
-                if (validCode(int(csvoutput[0]))):
-                    if (mode == 1):
-                        try:
-                            if (coRecord[1][coRecord[0].index(csvoutput[0])] == csvoutput[1]):
-                                iPos = int(coRecord[0].index(csvoutput[0]))
-                                for i in range (0, 13):
-                                    csvoutput[i] = coRecord[i][iPos]
-                                csvoutput[14] = ""
-                                csvwriter.writerow(csvoutput)
-                                needParse = False
-                            else:
-                                needParse = True
-                                csvoutput[14] = 'Changed'
-                        except ValueError:
-                            needParse = True
-                            csvoutput[14] = 'New'
-                    if (needParse == True or mode != 1):
-                        print ('Now on: ' + '\t' + csvoutput[0])
-                        csvoutput, coSoup = extractCo(csvoutput[0], 1, csvoutput)
-                        csvoutput = [s.replace('\xa0',' ') for s in csvoutput]
-                        #curFlag = False
-                        needParse = False
-                        if (re.search('industry', str(coSoup), re.M | re.I) != None) and (re.search('HSIC', csvoutput[7], re.M | re.I) != None) and (re.search('Preference Share', str(coSoup), re.M | re.I) == None):
-                        #for cur in curList:
-                            #if (csvoutput[8][0:3] == cur): curFlag = True
-                        #if (curFlag == True):
-                            csvoutput, coSoup = extractCo(csvoutput[0], 2, csvoutput)
-                            csvwriter.writerow(csvoutput)
-                        else:
-                            print (csvoutput[0] +' is not valid')
-                            excludeLog.write(csvoutput[0] + '\n')
-                csvoutput = ['','','','','','','','','','','','','','','']
-                count = 0
-            #When reading should be stock code
-            else:
-                csvoutput[0] = temp
-                count = 1
-        #First 2 readings not relevant
-        else:
-            count += 1
-            if count == 3:
-                startOutput = True
-                count = 0
+        currentList = dict(zip([coRecord[0] for coRecord in coRecords], [coRecord[1] for coRecord in coRecords]))                       #currentList    [1,2,3  ]
+                                                                                                                                        #onlineList     [  2,3,4]
+        targetList = sorted(set(onlineList) ^ set(currentList))                                                                         #targetList     [1,    4]
+        changeList = sorted(set([key for key in (set(currentList) & set(onlineList)) if currentList[key] != onlineList[key]]))          #changeList     [  2    ]
+        removeList = sorted(((set(onlineList) ^ set(currentList)) & set(currentList)) | set(changeList))                                #removeList     [1,2    ]
+        targetList = sorted((set(targetList) ^ set(removeList)) | set(changeList))                                                      #targetList     [  2   4]
 
-    #Output results
-    csvfile.close()
-    excludeLog.close()
+        coRecords = [coRecord for coRecord in coRecords if not (coRecord[0] in removeList)]
+        for coRecord in coRecords: coRecord[14] = ''
+
+    try:
+        for key in targetList:
+            print('Working on : ' + key)
+            items = extractCo(extractCo([key, onlineList[key], 'Company/Securities Name:', '公司/證券名稱:', 'Principal Office:', 'Place Incorporated:', 'Principal Activities:', 'Industry Classification:', 'Trading Currency:', 'Issued Shares:(Click here for important notes)', 'Authorised Shares:', 'Par Value:',  'Board Lot:', 'Listing Date :', '', '',''], key, 1), key, 2)
+            if (sum([item[-1]==':' for item in items if item!='']) <= 0):
+                items[9] = items[9].split('(')[0]
+                if mode: items[16] == 'New'
+                coRecords.append(items)
+        writeCoList(coRecords)
+    except:
+        writeCoList(coRecords)
+
+#   Add paused progress status for resume
+#   Check if the exclude list exists, if so read in all and don't check info, otherwise write
+#   Also make sure update exclude list if new is found
+
+#    excludeLog = open(os.path.join(folderPath, 'excludeLog.txt'), "w+", encoding='utf-8')
+#    excludeLog.close()
+#===============================================================================================================================================
+def writeCoList(coRecords):
+
+    csvwriter = csv.writer(open(os.path.join(folderPath, 'coList.csv'), "w+", newline='', encoding='utf-8'))
+    csvwriter.writerow(['Code', 'Short', 'Name (Eng)', 'Name (Chi)', 'Principal Office', 'Place Incorporated', 'Principal Activities', 'Industry Classification', 'Currency', 'Issued Shares', 'Authorised Shares', 'Par Value', 'Board Lot', 'Listing Date', 'Year End', 'Data Type', 'Remark'])
+    for coRecord in sorted(coRecords): csvwriter.writerow(coRecord)
+
+#===============================================================================================================================================
+def main():
+    outToCSV(1) if (os.path.isfile(os.path.join(folderPath,'coList.csv')) == True) else outToCSV(0)
+
 #===============================================================================================================================================

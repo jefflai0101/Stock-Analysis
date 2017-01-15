@@ -16,7 +16,7 @@ If you are interested to execute this code on a computer remotely, please take a
 
 - To filter companies with criteria
 
-- To help understand the recent development of the company with company announcements (Incomplete)
+- To help understand the recent development of the company with company announcements (In Progress)
 
 ##Setup for the system
 
@@ -24,7 +24,6 @@ On the computer executing the code:
 
 	|->	hkex.py
 	|>>	Settings
-		|-> Criteria.csv
 		|-> Criteria.txt
 		|->	keyword.csv
 		|->	settings.txt
@@ -42,27 +41,23 @@ Alternatively, you can move the **Criteria.txt** file to the output folder, if y
 
 1)	Set the desired output path in **settings.txt**
 	
-	Output Folder=C:\Dropbox\HKEx
+	Output Folder="C:/Dropbox/HKEx"
 
 Note that you will need to ensure the specified location path exists
 By default, if no path was specified, an folder **Output** will be created in the same level as **hkex.py**
 
 2)	Modify 'keywords.csv' for company announcement analysis, in the following format
 
-**You may skip this part as it is incomplete**
-
 	[Announcement keyword]		[Required? (Y/N)]		[Category]
 	ASSET RESTRUCTURING				Y					Restructure
 
 3)	Modify the 'Criteria.txt' for company financial filter
 
-	[Criteria Type]			[Threshold]		[M/L/N]		[Position in Excel]
-	Gross Profit Margin		30				M					5
+	[Criteria Type]			[Threshold]		[M/L/N]
+	Gross Profit Margin		30				M		
 
 For example, the above will mean a filter for companies with **more** than **30%** in **Gross Profit Margin**
 
-Modifying [Criteria Type] and [Position in Excel] **will crash** the system
-	
 	Notes:
 	M = More
 	L = Less
